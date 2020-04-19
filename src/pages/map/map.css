@@ -1,0 +1,30 @@
+.map-grid{
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .img-map{
+      width: 5%;
+      height: 5%;
+      float: left;
+  }
+  
+ .buildings-grid{
+    display: flex;
+    margin-right: auto;
+    margin-left: auto;
+    margin-bottom: 30px;
+    text-align: center;
+ }
+ .text-color{
+    color:#F00;
+ }
+  .search{
+      bottom: 20px;
+  }
+  
+  
+
+    

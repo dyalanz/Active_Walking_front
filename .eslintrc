@@ -1,0 +1,12 @@
+{  
+    "parser": "babel-eslint",
+    "parserOptions": {
+        "ecmaVersion": 6,
+        "ecmaFeatures": {
+          "experimentalObjectRestSpread": true
+        }
+      },
+    "extends": [
+        "plugin:react/recommended"
+      ]
+}

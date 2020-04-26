@@ -12,7 +12,9 @@ class Dir extends Component {
 
 
 };
-
+/**
+ * make direction
+ */
 componentDidMount() {
     const directionsService = new google.maps.DirectionsService();
 
@@ -45,7 +47,9 @@ componentDidMount() {
         }
     );
 }
-
+/**
+ * show map
+ */
 render() {
     const GoogleMapExample = withGoogleMap(props => (
         <GoogleMap

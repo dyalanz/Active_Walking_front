@@ -11,7 +11,7 @@ import C3 from './UI/C3.jpg';
 
 
 
-
+// Carousel 
 
 
 class Home extends Component {
@@ -30,7 +30,7 @@ class Home extends Component {
                     <hr/>
                     <div className="text-home">
                     <Link to="/maps">Learn More</Link>
-                    </div>  
+                    </div> 					
              <Carousel style={{width:'30%',margin:'auto'}} autoPlay={true}>
                 <div>
                     <img src={C1} />

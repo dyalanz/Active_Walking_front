@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8' />
+    <title></title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v1.9.1/mapbox-gl.js'></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v1.9.1/mapbox-gl.css' rel='stylesheet' />
+    <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
+    <script src="https://unpkg.com/@mapbox/mapbox-sdk/umd/mapbox-sdk.min.js"></script>
+    <script src="https://sdn.geekzu.org/ajax/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script
+    src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.4.2/mapbox-gl-geocoder.min.js'></script>
+    <link rel='stylesheet'
+    href='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.4.2/mapbox-gl-geocoder.css'
+    type='text/css' />
+    <style>
+        
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+      #map {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+        
+      }
+      .mapboxgl-ctrl-geocoder--icon-search {
+        position: absolute;
+        top: 9px;
+        left: 140px;
+        width: 23px;
+        height: 20px;
+        }
+      .mapboxgl-popup {
+            padding-bottom: 50px;
+        }
+
+
+
+        .mapboxgl-popup-content {
+            font: 400 15px/22px 'Source Sans Pro', 'Helvetica Neue', Sans-serif;
+            padding: 0;
+            width: 180px;
+        }
+
+        .mapboxgl-popup-content-wrapper {
+            padding: 1%;
+        }
+
+        .mapboxgl-popup-content {
+            top: 10px;
+            bottom: 10px;
+            background-color: #fefefe;
+            margin: 5.5%auto;
+            /* 15% from the top and centered */
+            padding: 10px;
+            border: 3px solid #000;
+            width: auto;
+            height: auto;
+            /* Could be more or less, depending on screen size */
+            border-color: #33cccc;
+
+        }
+        .marker {
+            background-image: url('http://image.flaticon.com/icons/svg/2411/2411355.svg');
+            background-size: cover;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .mapboxgl-popup-content h3 {
+            background: #33cccc;
+            color: #fff;
+            margin: 0;
+            display: block;
+            padding: 10px;
+            border-radius: 3px 3px 0 0;
+            font-weight: 700;
+            margin-top: -15px;
+        }
+
+
+        .mapboxgl-popup-content h4 {
+            margin: 0;
+            display: block;
+            padding: 10px;
+            font-weight: 400;
+        }
+
+        .mapboxgl-popup-content div {
+            padding: 10px;
+        }
+
+    
+
+
+    </style>
+  </head>
+  <body>
+    <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-directions/v4.0.2/mapbox-gl-directions.js"></script>
+    <link
+    rel="stylesheet"
+    href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-directions/v4.0.2/mapbox-gl-directions.css"
+    type="text/css"
+    />
+    <div id='map' >
+    </div>
+        
+
+    <script>
+    mapboxgl.accessToken = 'pk.eyJ1Ijoic2t5eXdhdGVyIiwiYSI6ImNrMjRqcGQyMTA4OWgzYnBlNm4wM21zejgifQ.B4wAQ52ZMUIKzv1RDsGH0A';
+    var map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/streets-v10',
+    center:[145.047033,-37.899077 ], // starting position
+    zoom: 14
+    });
+    // set the bounds of the map
+  
+    
+    map.addControl(
+        new mapboxgl.GeolocateControl({
+        positionOptions: {
+        enableHighAccuracy: true
+        },
+        trackUserLocation: true
+        })
+        );
+    map.addControl(new mapboxgl.NavigationControl());
+    
+    map.addControl(
+        new MapboxDirections({
+        accessToken: mapboxgl.accessToken
+        }),
+        'top-left'
+        );
+
+        map.on('load', function (e) {
+
+
+      $.getJSON("https://raw.githubusercontent.com/dyalanz/Active_Walking_front/master/histricalhuilding.geojson?token=ALXRDROG6ELILQVZ5EPB6KS6VIQMY", function (building) {
+       console.log(building);
+
+     map.addSource('places', {
+        type: 'geojson',
+        data: building
+    });
+    // Going through each building 
+    building.features.forEach(function (marker, i) {
+       //  console.log(marker);
+        var mapboxClient = mapboxSdk({ accessToken: mapboxgl.accessToken });
+
+        // Reverse geocoding to retrieve the address of thebuilding
+        var address = mapboxClient.geocoding.reverseGeocode({
+            // Loading the coordinates from the building
+            query: marker.geometry.coordinates,
+            limit: 1
+        })
+            .send()
+            .then(function (response) {
+                if (response && response.body && response.body.features && response.body.features.length) {
+                    var feature = response.body.features[0];
+
+                    // Getting the address of building
+                    var address = marker.properties.address;
+                }
+              
+               // console.log(marker);
+
+                //Initialising the popup for each building
+              var popUps = document.getElementsByClassName('mapboxgl-popup');
+              if (popUps[0]) popUps[0].remove();
+
+              var popUps = new mapboxgl.Popup({ offset: 25 })
+                  .setText(address);
+
+              // Custom building for the markers
+              var el = document.createElement('div');
+              el.className = 'marker';
+
+              //Marker with popup 
+              new mapboxgl.Marker(el)
+                  .setLngLat(marker.geometry.coordinates)
+                  .setPopup(popUps)
+                  .addTo(map);
+            });
+
+    });
+    function createPopUp(currentFeature) {
+        var popUps = document.getElementsByClassName('mapboxgl-popup');
+        if (popUps[0]) popUps[0].remove();
+
+        var mapboxClient = mapboxSdk({ accessToken: mapboxgl.accessToken });
+        var address = mapboxClient.geocoding.reverseGeocode({
+            // Loading the coordinates from the historical building
+            query: currentFeature.geometry.coordinates,
+            limit: 1
+        })
+            .send()
+            .then(function (response) {
+                if (response && response.body && response.body.features && response.body.features.length) {
+                    var feature = response.body.features[0]
+                    var address = feature.place_name;
+                }
+              
+                //Adding pop up when clicking the list of historical building
+                var popup = new mapboxgl.Popup({ closeOnClick: false })
+                    .setLngLat(currentFeature.geometry.coordinates)
+                    .setHTML('<h3>The nearest historical building is at: </h3>' +
+                        '<h4>' + address + '</h4>')
+                    .addTo(map);
+
+                    // if (popup[0]) popup[0].remove();
+            }
+
+            )
+    };
+// search place
+  map.addControl(new MapboxGeocoder({
+            accessToken: mapboxgl.accessToken,
+            mapboxgl: mapboxgl,
+            marker:{color: "blue"},
+        }));
+    </script>
+  </body>
+</html>

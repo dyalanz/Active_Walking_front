@@ -8,3 +8,8 @@ from new solution, include
 	Mapv2
 	histricalhuilding2.geojson
 	hist_facts
+	
+from iteration 2, include
+    Mapv3
+    Bingo game
+    v2.geojson	

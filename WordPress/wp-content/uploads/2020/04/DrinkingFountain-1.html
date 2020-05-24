@@ -1,0 +1,906 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <!-- Page title  -->
+    <title>Drinking Fountain Locator</title>
+    <!-- Mapbox GL JS -->
+    <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v1.3.0/mapbox-gl.js"></script>
+    <link href="https://api.tiles.mapbox.com/mapbox-gl-js/v1.3.0/mapbox-gl.css" rel="stylesheet">
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <link href="https://fonts.geekzu.org/css?family=Source+Sans+Pro:400,700" rel="stylesheet">
+    <script src="https://unpkg.com/@mapbox/mapbox-sdk/umd/mapbox-sdk.min.js"></script>
+    <!-- ajax JS -->
+    <script src="https://sdn.geekzu.org/ajax/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <!-- Turf.js plugin -->
+    <script src="https://npmcdn.com/@turf/turf/turf.min.js"></script>
+    <!-- Geocoder plugin -->
+    <script
+        src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.4.2/mapbox-gl-geocoder.min.js'></script>
+    <link rel='stylesheet'
+        href='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.4.2/mapbox-gl-geocoder.css'
+        type='text/css' />
+    <!-- D3 JS -->
+    <script src="https://d3js.org/d3-queue.v3.min.js"></script>
+    <!--     <link href="https://www.mapbox.com/base/latest/base.css" rel="stylesheet"> -->
+    <!-- <link href="https://www.mapbox.com/base/latest/base.css" rel="stylesheet"> -->
+
+
+
+
+    <style>
+        /* reset button to reset directions */
+        #reset {
+            position: absolute;
+            top: 70%;
+            right: 1%;
+            z-index: 999;
+            color: white;
+            background-color: #33cccc;
+        }
+
+
+        /* Buttons */
+        .button {
+            /* background-color: #3887be; */
+            /* border-color: white; */
+            text-align: center;
+            color: #fff;
+            display: inline-block;
+            margin: 0px;
+            padding: 8px;
+            position: relative;
+            cursor: pointer;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            /* Protects button metrics in .prose context */
+            font-family: 'Open Sans Bold', sans-serif;
+            line-height: 20px;
+            font-size: 14px;
+            -webkit-appearance: none;
+            /* The button element needs to be forced this */
+            -webkit-font-smoothing: antialiased;
+            text-decoration: none;
+        }
+
+        /* body styling */
+        body {
+            color: #404040;
+            font: 400 15px/22px 'Source Sans Pro', 'Helvetica Neue', Sans-serif;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        * {
+            -webkit-box-sizing: border-box;
+            -moz-box-sizing: border-box;
+            box-sizing: border-box;
+        }
+
+        /* nearest drinking fountain suggesting sidebar */
+        .sidebar {
+            position: absolute;
+            width: 20%;
+            height: 600px;
+            top: 0;
+            left: 0;
+            overflow: hidden;
+            border-right: 1px solid rgba(0, 0, 0, 0.25);
+        }
+
+        .pad2 {
+            padding: 20px;
+        }
+
+        /* map styling */
+        .map {
+            position: absolute;
+            left: 20%;
+            width: 100%;
+            top: 0;
+            bottom: 0;
+            height: 600px;
+
+        }
+
+        h1 {
+            font-size: 22px;
+            margin: 0;
+            font-weight: 400;
+            line-height: 20px;
+            padding: 20px 2px;
+            color: white;
+        }
+
+        h2 {
+            font-size: 16px;
+            margin: 0;
+            font-weight: 200;
+            line-height: 20px;
+            padding: 20px 2px;
+            color: white;
+        }
+
+        /* Sidebar heading */
+        .heading {
+            background: #fff;
+            border-bottom: 1px solid #eee;
+            min-height: 60px;
+            line-height: 60px;
+            padding: 0 10px;
+            background-color: #33cccc;
+            color: #fff;
+        }
+
+        /* Drinking fountain listings  */
+        .listings {
+            height: 100%;
+            overflow: auto;
+            padding-bottom: 60px;
+        }
+
+        /* Each drinking fountain listing */
+        .listings .item {
+            display: block;
+            border-bottom: 1px solid #eee;
+            padding: 10px;
+            text-decoration: none;
+        }
+
+        .listings .item:last-child {
+            border-bottom: black;
+        }
+
+        .listings .item .title {
+            display: block;
+            color: black;
+            font-weight: 500;
+        }
+
+        .listings .item .title small {
+            font-weight: 400;
+        }
+
+        .listings .item.active .title .listings .item .title:hover {
+            color: #33cccc;
+        }
+
+        .listings .item.active {
+            background-color: #f8f8f8;
+        }
+
+        ::-webkit-scrollbar {
+            width: 3px;
+            height: 3px;
+            border-left: 0;
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        ::-webkit-scrollbar-track {
+            background: none;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #33cccc;
+            border-radius: 0;
+        }
+
+        /* Drinking bottle fountain marker */
+        .marker {
+            border: none;
+            cursor: pointer;
+            height: 25px;
+            width: 25px;
+            background-image: url('https://image.flaticon.com/icons/svg/824/824239.svg');
+            background-color: rgba(0, 0, 0, 0);
+        }
+
+        .clearfix {
+            display: block;
+        }
+
+        .clearfix::after {
+            content: '.';
+            display: block;
+            height: 0;
+            clear: both;
+            visibility: hidden;
+        }
+
+        /* Marker pop up styling */
+        .mapboxgl-popup {
+            padding-bottom: 50px;
+        }
+
+        .mapboxgl-popup-close-butto n {
+            display: none;
+        }
+
+        .mapboxgl-popup-content {
+            font: 400 15px/22px 'Source Sans Pro', 'Helvetica Neue', Sans-serif;
+            padding: 0;
+            width: 180px;
+        }
+
+        .mapboxgl-popup-content-wrapper {
+            padding: 1%;
+        }
+
+        .mapboxgl-popup-content {
+            top: 10px;
+            bottom: 10px;
+            background-color: #fefefe;
+            margin: 5.5%auto;
+            /* 15% from the top and centered */
+            padding: 10px;
+            border: 3px solid #000;
+            width: auto;
+            height: auto;
+            /* Could be more or less, depending on screen size */
+            border-color: #33cccc;
+
+        }
+
+        .mapboxgl-popup-content h3 {
+            background: #33cccc;
+            color: #fff;
+            margin: 0;
+            display: block;
+            padding: 10px;
+            border-radius: 3px 3px 0 0;
+            font-weight: 700;
+            margin-top: -15px;
+        }
+
+
+        .mapboxgl-popup-content h4 {
+            margin: 0;
+            display: block;
+            padding: 10px;
+            font-weight: 400;
+        }
+
+        .mapboxgl-popup-content div {
+            padding: 10px;
+        }
+
+        .mapboxgl-container .leaflet-marker-icon {
+            cursor: pointer;
+        }
+
+        .mapboxgl-popup-anchor-top>.mapboxgl-popup-content {
+            margin-top: 15px;
+        }
+
+        .mapboxgl-popup-anchor-top>.mapboxgl-popup-tip {
+            border-bottom-color: #33cccc;
+        }
+
+        /* mapboxgl-ctrl-geocoder styling */
+        .mapboxgl-ctrl-geocoder {
+            border: 0;
+            border-radius: 0;
+            right: 1px;
+            position: relative;
+            top: 0;
+            width: 800px;
+            margin-top: 0;
+        }
+
+        .mapboxgl-ctrl-geocoder>div {
+            min-width: 100%;
+            margin-left: 0;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <!-- Sidebar for drinking fountain suggestions -->
+    <div class="sidebar">
+        <div class="heading">
+            <center>
+                <h1>Drinking fountain near you</h1>
+            </center>
+            <h2>
+                <center>Enter your address to see the list of drinking fountains near you </center>
+            </h2>
+        </div>
+        <!-- To add all the listings based on the user location  -->
+        <div id="listings" class="listings"></div>
+    </div>
+
+    <a href="#" id="reset" class="button fill-lighten"> Reset directions</a>
+
+    <!-- Mapbox map div  -->
+    <div id="map" class="map mapboxgl-map">
+        <div class="mapboxgl-canary" style="visibility: hidden;"></div>
+        <div class="mapboxgl-canvas-container mapboxgl-interactive mapboxgl-touch-drag-pan mapboxgl-touch-zoom-rotate">
+            <canvas class="mapboxgl-canvas" tabindex="0" aria-label="Map" width="712" height="942"
+                style="position: absolute; width: 570px; height: 754px;"></canvas>
+            <div id="marker-0" class="marker mapboxgl-marker mapboxgl-marker-anchor-center"
+                style="transform: translate(-50%, -50%) translate(285px, 354px);"></div>
+            <div id="marker-1" class="marker mapboxgl-marker mapboxgl-marker-anchor-center"
+                style="transform: translate(-50%, -50%) translate(102px, 487px);"></div>
+            <div id="marker-2" class="marker mapboxgl-marker mapboxgl-marker-anchor-center"
+                style="transform: translate(-50%, -50%) translate(170px, 341px);"></div>
+            <div id="marker-3" class="marker mapboxgl-marker mapboxgl-marker-anchor-center"
+                style="transform: translate(-50%, -50%) translate(-101px, 421px);"></div>
+            <div id="marker-4" class="marker mapboxgl-marker mapboxgl-marker-anchor-center"
+                style="transform: translate(-50%, -50%) translate(652px, 693px);"></div>
+            <div id="marker-5" class="marker mapboxgl-marker mapboxgl-marker-anchor-center"
+                style="transform: translate(-50%, -50%) translate(1457px, -883px);"></div>
+            <div id="marker-6" class="marker mapboxgl-marker mapboxgl-marker-anchor-center"
+                style="transform: translate(-50%, -50%) translate(-449px, -714px);"></div>
+            <div id="marker-7" class="marker mapboxgl-marker mapboxgl-marker-anchor-center"
+                style="transform: translate(-50%, -50%) translate(-3505px, -371px);"></div>
+            <div id="marker-8" class="marker mapboxgl-marker mapboxgl-marker-anchor-center"
+                style="transform: translate(-50%, -50%) translate(-582px, 797px);"></div>
+            <div id="marker-9" class="marker mapboxgl-marker mapboxgl-marker-anchor-center"
+                style="transform: translate(-50%, -50%) translate(20630px, -16221px);"></div>
+            <div id="marker-10" class="marker mapboxgl-marker mapboxgl-marker-anchor-center"
+                style="transform: translate(-50%, -50%) translate(21640px, -15400px);"></div>
+            <div id="marker-11" class="marker mapboxgl-marker mapboxgl-marker-anchor-center"
+                style="transform: translate(-50%, -50%) translate(170px, 441px);"></div>
+        </div>
+        <!-- mapbox controllers  -->
+        <div class="mapboxgl-control-container">
+            <div class="mapboxgl-ctrl-bottom-left">
+                <div class="mapboxgl-ctrl" style="display: none;"><a class="mapboxgl-ctrl-logo" target="_blank"
+                        rel="noopener nofollow" href="https://www.mapbox.com/" aria-label="Mapbox logo"></a></div>
+            </div>
+            <div class="mapboxgl-ctrl-bottom-right">
+                <div class="mapboxgl-ctrl mapboxgl-ctrl-attrib mapboxgl-attrib-empty mapboxgl-compact">
+                    <div class="mapboxgl-ctrl-attrib-inner"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // reset map button 
+        document.getElementById('reset').onclick = clearMap;
+        if (!('remove' in Element.prototype)) {
+            Element.prototype.remove = function () {
+                if (this.parentNode) {
+                    this.parentNode.removeChild(this);
+
+                }
+            };
+        }
+
+        // Declaring the mapboxgl accesstoken as a global variable 
+        mapboxgl.accessToken = 'pk.eyJ1IjoiY3lhbnl1eWFuZyIsImEiOiJjanptazF3MjUxNm5wM2RscHFhbjloanFnIn0.OsH_tgU7j8HuTHuAUafqkw';
+
+        // Street view map of Melbourne
+        var map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/streets-v10',
+            center: [144.95257756009232, -37.815185695578855],
+            zoom: 13,
+            scrollZoom: true,
+            hash: true
+        });
+
+        // Navigation control for the map 
+        var nav = new mapboxgl.NavigationControl();
+        map.addControl(nav, 'bottom-left');
+
+        // Three modes of transportaion direction
+        var api = 'https://api.mapbox.com/directions/v5/';
+        var profiles = {
+            driving: {
+                color: '#3bb2d0'
+            },
+            cycling: {
+                color: '#56b881'
+            },
+            walking: {
+                color: '#fbb03b'
+            }
+        };
+
+        // Clearing the map on load 
+        map.on('load', clearMap);
+        // Clicking anywhere on the map to get directions - declares the start point
+        map.on('click', go);
+
+
+
+        function go(e) {
+
+            // First click on the map is the starting point 
+            if (e.type === 'click' && !start) start = [e.lngLat.lng, e.lngLat.lat];
+
+            // Retrieving the coordinates of the start point 
+            if (!map.getSource('start')) {
+                map.addSource('start', {
+                    type: 'geojson',
+                    data: {
+                        type: 'Point',
+                        coordinates: [start[0], start[1]]
+                    }
+                });
+
+                map.addLayer({
+                    'id': 'start',
+                    'type': 'circle',
+                    'source': 'start',
+                    'layout': {},
+                    'paint': {
+                        'circle-radius': 10,
+                        'circle-color': profiles.driving.color
+                    }
+                });
+            }
+
+            // Second click will be the destination 
+            if (e.type === 'click') {
+
+
+                end = [e.lngLat.lng, e.lngLat.lat];
+                if (end.toString() === start.toString()) {
+                    end = null;
+                    return
+                }
+            }
+
+            map.addSource('end', {
+                type: 'geojson',
+                data: {
+                    type: 'Point',
+                    coordinates: [end[0], end[1]]
+                }
+            });
+
+            map.addLayer({
+                'id': 'end',
+                'type': 'circle',
+                'source': 'end',
+                'layout': {},
+                'paint': {
+                    'circle-radius': 10,
+                    'circle-color': profiles.driving.color
+                }
+            });
+
+            if (start && end) requestProfiles(start, end, Object.keys(profiles));
+        }
+
+        // using D3 to draw the directions for three modes of transportation
+        function requestProfiles() {
+            var queue = d3.queue();
+
+            Object.keys(profiles).forEach(function (profile) {
+                queue.defer(route, start, end, profile);
+            });
+
+            queue.awaitAll(function (error, results) {
+                results.forEach(function (result) {
+                    if (result && result.profile) {
+                        profiles[result.profile].route = result.routes[0];
+                    }
+                })
+                draw();
+            });
+
+
+            function route(start, end, profile, cb) {
+                var startEnd = encodeURIComponent(start + ';' + end);
+                var request = new XMLHttpRequest();
+                var url = api + 'mapbox/' + profile + '/' + startEnd + '.json?access_token=pk.eyJ1IjoiYWFyb25saWRtYW4iLCJhIjoiNTVucTd0TSJ9.wVh5WkYXWJSBgwnScLupiQ&geometries=geojson&overview=full';
+
+                request.abort();
+                request.open('GET', url, true);
+                request.send();
+
+                request.onload = function () {
+                    if (request.status >= 200 && request.status < 400) {
+                        var data = JSON.parse(request.responseText);
+                        if (data.error) {
+                            console.log('error');
+                            return clear();
+                        }
+                        data.profile = profile;
+                        return cb(null, data);
+                    } else {
+
+                        return cb(null, false);
+                    }
+                };
+
+                request.onerror = function () {
+                    return cb(null, false);
+                };
+            }
+        }
+
+        // Drawing the route 
+        function draw() {
+            // The map view is set to show the start and end points 
+            var bounds = new mapboxgl.LngLatBounds(start, end);
+
+            Object.keys(profiles).forEach(function (profile, idx) {
+                map.addSource(profile + ' route', {
+                    type: 'geojson',
+                    data: profiles[profile].route.geometry
+                });
+                var route = {
+                    'id': profile + ' route',
+                    'type': 'line',
+                    'source': profile + ' route',
+                    'layout': {
+                        'line-join': 'round',
+                        'line-cap': 'round'
+                    },
+                    'paint': {
+                        'line-color': profiles[profile].color,
+                        'line-width': 4,
+                        'line-opacity': 1
+                    }
+                };
+                if (profile == 'cycling') route.paint['line-dasharray'] = [2.5, 2.5];
+                if (profile == 'walking') route.paint['line-dasharray'] = [0, 1.5];
+                map.addLayer(route, 'start');
+
+                var result = profiles[profile].route.geometry.coordinates.reduce(function (previous, current) {
+                    return bounds.extend(current);
+                });
+            });
+
+            map.fitBounds(bounds, {
+                padding: 100
+            });
+        }
+
+        // What happens when the reset button is clicked 
+        function clearMap() {
+
+            // The directions are removed 
+            Object.keys(profiles).forEach(function (profile) {
+                if (map.getLayer(profile + ' route')) map.removeLayer(profile + ' route');
+                if (map.getSource(profile + ' route')) map.removeSource(profile + ' route');
+            });
+
+            ['start', 'end'].forEach(function (item) {
+                if (map.getLayer(item)) map.removeLayer(item);
+                if (map.getSource(item)) map.removeSource(item);
+            });
+
+            start = null;
+            end = null;
+
+            // Popups removed on click 
+            var popUps = document.getElementsByClassName('mapboxgl-popup');
+            if (popUps[0]) popUps[0].remove();
+
+            // Map centered to the initial state 
+            // var map_center = [144.95257756009232, -37.815185695578855]
+            // flyTocenter(map_center);
+
+
+        }
+
+        // Resetting map to Melbourne center 
+        function flyTocenter(map_center) {
+            //    console.log(currentFeature.geometry.coordinates);
+            map.flyTo({
+                center: map_center,
+                zoom: 13
+
+            });
+
+        }
+
+
+        // This adds the fountains to the map
+        map.on('load', function (e) {
+
+            // API for the drinking water fountain data 
+            $.getJSON("https://data.melbourne.vic.gov.au/resource/h4ih-tzqs.geojson", function (fountains) {
+                //    console.log(fountains.features[0]);
+
+                // add map layer 
+                map.addSource('places', {
+                    type: 'geojson',
+                    data: fountains
+                });
+
+                //    console.log(fountains.features);
+                buildFountainList(fountains); // Initialize the list
+
+                // Going through each drinking fountain 
+                fountains.features.forEach(function (marker, i) {
+                    // console.log(marker);
+                    var mapboxClient = mapboxSdk({ accessToken: mapboxgl.accessToken });
+
+                    // Reverse geocoding to retrieve the address of the drinking fountains 
+                    var address = mapboxClient.geocoding.reverseGeocode({
+                        // Loading the coordinates from the drinking water fountain 
+                        query: marker.geometry.coordinates,
+                        limit: 1
+                    })
+                        .send()
+                        .then(function (response) {
+                            if (response && response.body && response.body.features && response.body.features.length) {
+                                var feature = response.body.features[0];
+
+                                // Getting the address of the fountain
+                                var address = feature.place_name;
+
+
+                            }
+
+                            marker.properties.geom_address = address;
+                            // console.log(marker);
+
+                            // var sorted_fountain = fountains.sort((a, b) => (a.properties.geom_address) - (b.properties.geom_address));
+                            // console.log(sorted_fountain);
+
+
+
+                            //Initialising the popup for each fountain
+                            var popUps = document.getElementsByClassName('mapboxgl-popup');
+                            if (popUps[0]) popUps[0].remove();
+
+                            var popUps = new mapboxgl.Popup({ offset: 25 })
+                                .setText(address);
+
+                            // Custom water bottle for the markers
+                            var el = document.createElement('div');
+                            el.className = 'marker';
+
+                            // Water bottle marker with popup 
+                            new mapboxgl.Marker(el)
+                                .setLngLat(marker.geometry.coordinates)
+                                .setPopup(popUps)
+                                .addTo(map);
+                        });
+
+                });
+
+                //                 // console.log(fountains);
+                //                 var fountain_features = fountains.features;
+                //                 console.log(fountain_features);
+
+                //                 // console.log(typeof(fountain_features));
+
+                // var sorted = (fountain_features.sort((a, b) => {
+                //   if (a.properties.geom_address < b.properties.geom_address)
+                //     console.log(a.properties.geom_address);
+                //     console.log(b.properties.geom_address);
+                //     return -1;
+
+                //   if (a.properties.geom_address > b.properties.geom_address)
+                //     return 1;
+                //   return 0;
+                // }));
+
+                // console.log(sorted);
+
+
+                //Move to the specific drinking fountain when clicking on the list of drinking fountains
+                function flyTofountain(currentFeature) {
+                    //    console.log(currentFeature.geometry.coordinates);
+                    map.flyTo({
+                        center: currentFeature.geometry.coordinates,
+                        zoom: 13
+
+                    });
+                }
+
+                //Creating pop up when clicked on the list of drinking fountains
+                function createPopUp(currentFeature) {
+                    var popUps = document.getElementsByClassName('mapboxgl-popup');
+                    if (popUps[0]) popUps[0].remove();
+
+                    var mapboxClient = mapboxSdk({ accessToken: mapboxgl.accessToken });
+                    var address = mapboxClient.geocoding.reverseGeocode({
+                        // Loading the coordinates from the drinking water fountain 
+                        query: currentFeature.geometry.coordinates,
+                        limit: 1
+                    })
+                        .send()
+                        .then(function (response) {
+                            if (response && response.body && response.body.features && response.body.features.length) {
+                                var feature = response.body.features[0]
+                                var address = feature.place_name;
+
+
+                            }
+                            // console.log(currentFeature.geometry.coordinates);
+                            //Adding pop up when clicking the list of drinking fountains
+                            var popup = new mapboxgl.Popup({ closeOnClick: false })
+                                .setLngLat(currentFeature.geometry.coordinates)
+                                .setHTML('<h3>The nearest drinking fountain is at: </h3>' +
+                                    '<h4>' + address + '</h4>')
+                                .addTo(map);
+
+                                // if (popup[0]) popup[0].remove();
+                        }
+
+                        )
+                };
+
+                //Building a list of fountains on the sidebar
+                function buildFountainList(data) {
+                    var i = 0;
+                    // var j = 0;
+                    for (i; i < data.features.length; i++) {
+                        var currentFeature = data.features[i];
+                        var prop = currentFeature.properties;
+                        var mapboxClient = mapboxSdk({ accessToken: mapboxgl.accessToken });
+                        var address = mapboxClient.geocoding.reverseGeocode({
+                            // Loading the coordinates from the drinking water fountain 
+                            query: currentFeature.geometry.coordinates,
+                            limit: 1
+                        })
+                            .send()
+                            .then(function (response) {
+                                if (response && response.body && response.body.features && response.body.features.length) {
+                                    var feature = response.body.features[0];
+                                    //           matchingFeatures.push(feature);
+                                    var geom_address = feature.place_name;
+                                    currentFeature.properties.geom_address = geom_address;
+                                    // showInner(j)
+                                    // j = j + 1
+                                    // console.log(currentFeature.properties.geom_address);
+
+                                }
+                            });
+                        // console.log(currentFeature.properties);
+
+                        // function showInner(i) {
+
+                        var listings = document.getElementById('listings');
+                        var listing = listings.appendChild(document.createElement('div'));
+                        listing.className = 'item';
+                        listing.id = 'listing-' + i;
+
+                        var link = listing.appendChild(document.createElement('a'));
+                        link.href = '#';
+                        link.className = 'title';
+                        link.dataPosition = i;
+                        //      link.innerHTML = reverseGeocode(currentFeature);
+                        link.innerHTML = currentFeature.properties.geom_address;
+
+                        var details = listing.appendChild(document.createElement('div'));
+                        if (prop.distance) {
+                            var roundedDistance = Math.round(prop.distance * 100) / 100;
+                            details.innerHTML += '<p><strong>' + roundedDistance + ' miles away</strong></p>';
+                        }
+
+                        // Add event listener when clicked on the list of drinking fountains
+                        link.addEventListener('click', function (e) {
+                            //        console.log(this.dataPosition);
+                            var clickedListing = data.features[this.dataPosition]; // Update the currentFeature to the fountain 
+                            flyTofountain(clickedListing); // Fly to the point
+                            createPopUp(clickedListing); // Close all other popups and display popup for clicked fountain
+                            var activeItem = document.getElementsByClassName('active'); // Highlight listing in sidebar (and remove highlight for all other listings)
+                            if (activeItem[0]) {
+                                activeItem[0].classList.remove('active');
+                            }
+                            this.parentNode.classList.add('active');
+                        });
+                        // }
+
+
+                    };
+
+                };
+
+                // Creating a new Geocoder search box
+                var geocoder = new MapboxGeocoder({
+                    accessToken: mapboxgl.accessToken,
+                    mapboxgl: mapboxgl,
+                    marker: {color:'red'},
+                    bbox: [143.914581, -38.197510, 146.000610, -37.431584] // Set the bounding box coordinates with Melbourne
+                });
+
+                map.addControl(geocoder, 'top-left');
+                map.addSource('single-point', {
+                    type: 'geojson',
+                    data: {
+                        type: 'FeatureCollection',
+                        features: []
+                    }
+                });
+
+                //Adding a point for the search location
+                // map.addLayer({
+                //     id: 'point',
+                //     source: 'single-point',
+                //     type: 'circle',
+                //     paint: {
+                //         'circle-radius': 10,
+                //         'circle-color': 'red',
+                //         'circle-stroke-width': 3,
+                //         'circle-stroke-color': '#fff'
+                //     }
+                // });
+
+                geocoder.on('result', function (ev) {
+                    var searchResult = ev.result.geometry;
+                    map.getSource('single-point').setData(searchResult);
+                    //console.log(searchResult);
+
+                    //Measuring the distance of the searched location to all the fountains in Melbourne
+                    var options = { units: 'kilometers' };
+                    fountains.features.forEach(function (fountain) {
+                        Object.defineProperty(fountain.properties, 'distance', {
+                            value: turf.distance(searchResult, fountain.geometry, options),
+                            writable: true,
+                            enumerable: true,
+                            configurable: true
+                        });
+                    });
+
+                    //Sorting the fountains based on the distance to the user
+                    fountains.features.sort(function (a, b) {
+                        if (a.properties.distance > b.properties.distance) {
+                            return 1;
+                        }
+                        if (a.properties.distance < b.properties.distance) {
+                            return -1;
+                        }
+                        // a must be equal to b
+                        return 0;
+                    });
+
+                    //Sort the list of fountains based on distance
+                    var listings = document.getElementById('listings');
+                    while (listings.firstChild) {
+                        listings.removeChild(listings.firstChild);
+                    }
+
+                    buildFountainList(fountains);
+
+
+                    //Zoom in to the user location and the create a popup for the nearest fountain
+                    function sortLonLat(fountainIdentifier) {
+                        var lats = [fountains.features[fountainIdentifier].geometry.coordinates[1], searchResult.coordinates[1]];
+                        var lons = [fountains.features[fountainIdentifier].geometry.coordinates[0], searchResult.coordinates[0]];
+
+                        var sortedLons = lons.sort(function (a, b) {
+                            if (a > b) {
+                                return 1;
+                            }
+                            if (a.distance < b.distance) {
+                                return -1;
+                            }
+                            return 0;
+                        });
+                        var sortedLats = lats.sort(function (a, b) {
+                            if (a > b) {
+                                return 1;
+                            }
+                            if (a.distance < b.distance) {
+                                return -1;
+                            }
+                            return 0;
+                        });
+
+                        map.fitBounds([
+                            [sortedLons[0], sortedLats[0]],
+                            [sortedLons[1], sortedLats[1]]
+                        ], {
+                            padding: 100
+                        });
+                    }
+
+                    sortLonLat(0);
+                    createPopUp(fountains.features[0]);
+                });
+            });
+
+
+        });
+
+    </script>
+
+
+</body>
+
+</html>
